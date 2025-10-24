@@ -1,0 +1,3 @@
+(library
+ (name deptypcheck)
+ (modules syntax pp depcheck))
