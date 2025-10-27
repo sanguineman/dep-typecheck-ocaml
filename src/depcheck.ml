@@ -25,14 +25,14 @@ and eval (env: env) (e: exp) : value =
   | Type -> VType
   | _ -> VClos (env, e)
 
-(* p.172 2.3. Conversion algorithm *)
+(* p.172 2.3.1 Weak head normal form  *)
 let rec whnf (v: value) : value =
   match v with
   | VApp (u, w) -> app (whnf u) w
   | VClos (env, e) -> eval env e
   | _ -> v
 
-(* 값 동치(eqVal). 정수 k는 새 제네릭 값(VGen k) 배정에 사용 *)
+(* p.172 2.3.2. Conversion *)
 let rec eq_val (k, u1, u2) : bool =
   match (whnf u1, whnf u2) with
   | VType, VType -> true
@@ -50,8 +50,10 @@ let rec eq_val (k, u1, u2) : bool =
               VClos (update env2 x2 v, b2))
   | _ -> false
 
-(* 타입체커: 감마(gamma)는 타입 환경(식별자 ↦ 타입값), 로(rho)는 값 환경 *)
+(* Gamma is a type environment : id -> type value
+   Rho is a value environment  : id -> value *)
 
+(* p.173 2.4. Type-checking algorithm *)
 (* type checking and type inference *)
 let rec check_type (k, rho, gamma) (e: exp) : bool =
   check_exp (k, rho, gamma) e VType
@@ -69,19 +71,18 @@ and check_exp (k, rho, gamma) (e: exp) (v: value) : bool =
   | Pi (x, a, b) ->
       (match whnf v with
       | VType ->
-          check_type (k, rho, gamma) a &&
-          let vgen = VGen k in
-          let rho'   = update rho x vgen in
+          let v' = VGen k in
+          let rho'   = update rho x v' in
           let gamma' = update gamma x (VClos (rho, a)) in
+          check_type (k, rho, gamma) a &&
           check_type (k + 1, rho', gamma') b
-      | _ -> failwith "expected Type for Pi")
+      | _ -> failwith "expected Type")
   | Let (x, e1, e2, e3) ->
-      check_type (k, rho, gamma) e2 &&
       let rho'   = update rho x (eval rho e1) in
       let gamma' = update gamma x (eval rho e2) in
+      check_type (k, rho, gamma) e2 &&
       check_exp (k, rho', gamma') e3 v
   | _ ->
-      (* 기본: infer 한 타입과 기대타입 v가 동치인지 확인 *)
       eq_val (k, infer_exp (k, rho, gamma) e, v)
 
 and infer_exp (k, rho, gamma) (e: exp) : value =
@@ -93,10 +94,10 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
           if check_exp (k, rho, gamma) e2 (VClos (env, a))
           then
             VClos (update env x (VClos (rho, e2)), b)
-          else failwith "application type mismatch"
-      | _ -> failwith "application: expected Pi")
+          else failwith "application error"
+      | _ -> failwith "application, expected Pi")
   | Type -> VType
-  | _ -> failwith "cannot infer type for this expression"
+  | _ -> failwith "cannot infer type"
 
 let typecheck (m: exp) (a: exp) : bool =
   check_type (0, [], []) a &&
