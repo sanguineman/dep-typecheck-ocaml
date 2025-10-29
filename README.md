@@ -12,7 +12,7 @@ eval $(opam env)
 
 ### Install dependencies
 ```bash
-opam install dune ocaml-lsp-server odoc
+opam install dune ocaml-lsp-server odoc ocamlformat bisect-ppx
 ```
 
 ### Build the project

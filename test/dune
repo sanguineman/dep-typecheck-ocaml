@@ -1,0 +1,3 @@
+(test
+ (name depcheck_test)
+ (libraries deptypcheck))

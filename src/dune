@@ -1,3 +1,5 @@
 (library
  (name deptypcheck)
- (modules syntax pp depcheck))
+ (modules syntax pp depcheck)
+ (preprocess
+  (pps bisect_ppx)))

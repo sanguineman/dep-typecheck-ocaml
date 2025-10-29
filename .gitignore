@@ -34,3 +34,9 @@ setup.log
 
 # Local OPAM switch
 _opam/
+
+# VScode
+.vscode/
+
+# coverage test with bisect_ppx
+_coverage/
