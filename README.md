@@ -17,7 +17,7 @@ opam install dune ocaml-lsp-server odoc ocamlformat bisect-ppx
 
 ### Build the project
 ```bash
-dune build
+make
 ```
 
 ### Running the type-checker
@@ -25,3 +25,16 @@ dune build
 dune exec bin/main.exe
 ```
 
+## Testing
+To run the test suite, use the following command:
+```bash
+make test
+```
+This will execute the test cases located in the `test/` directory and display the results.
+
+## Coverage
+To generate a code coverage report, run:
+```bash
+make coverage
+```
+This will create an HTML report in the `_coverage` directory, which you can open in your web browser to view the coverage details.
