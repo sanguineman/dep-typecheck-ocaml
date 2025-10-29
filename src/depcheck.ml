@@ -1,5 +1,4 @@
 open Syntax
-open Pp
 
 exception Lookup_error of string
 
@@ -102,18 +101,3 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
 let typecheck (m: exp) (a: exp) : bool =
   check_type (0, [], []) a &&
   check_exp   (0, [], []) m (VClos ([], a))
-
-(* id = λA. λx. x : ΠA:Type. Πx:A. A *)
-let sample_check (m : exp) (a : exp) =
-  Printf.printf "\n[Checking Expression]\n%s\n" (string_of_exp m);
-  Printf.printf "\n[Expected Type]\n%s\n" (string_of_exp a);
-  try
-    if typecheck m a then
-      Printf.printf "\n[Result]\nTypecheck succeeded!\n\n"
-    else
-      Printf.printf "\n[Result]\nTypecheck failed.\n\n"
-  with
-  | Failure msg ->
-      Printf.printf "\n[Error] %s\n\n" msg
-  | Lookup_error x ->
-      Printf.printf "\n[Error] Unbound variable: %s\n\n" x
