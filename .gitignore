@@ -40,3 +40,5 @@ _opam/
 
 # coverage test with bisect_ppx
 _coverage/
+
+.DS_Store
