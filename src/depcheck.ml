@@ -41,7 +41,7 @@ and eval (env: env) (e: exp) : value =
 (* p.172 2.3.1 Weak head normal form  *)
 let rec whnf (v: value) : value =
   match v with
-  | VApp (u, w) -> app (whnf u) w
+  | VApp (u, w) -> app (whnf u) (whnf w)
   | VFst u -> proj_l u
   | VSnd u -> proj_r u
   | VClos (env, e) -> eval env e
