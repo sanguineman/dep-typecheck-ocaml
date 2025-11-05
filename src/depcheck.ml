@@ -59,7 +59,12 @@ let rec eq_val (k, u1, u2) : bool =
   | VClos (env1, Pair (l1, r1)), VClos (env2, Pair (l2, r2)) ->
       eq_val (k, VClos (env1, l1), VClos (env2, l2))
       && eq_val (k, VClos (env1, r1), VClos (env2, r2))
-  | VClos (env1, Pi (x1, a1, b1)), VClos (env2, Pi (x2, a2, b2))
+  | VClos (env1, Pi (x1, a1, b1)), VClos (env2, Pi (x2, a2, b2)) ->
+      let v = VGen k in
+      eq_val (k, VClos (env1, a1), VClos (env2, a2)) &&
+      eq_val (k + 1,
+              VClos (update env1 x1 v, b1),
+              VClos (update env2 x2 v, b2))
   | VClos (env1, Sigma (x1, a1, b1)), VClos (env2, Sigma (x2, a2, b2)) ->
       let v = VGen k in
       eq_val (k, VClos (env1, a1), VClos (env2, a2)) &&
@@ -93,7 +98,15 @@ and check_exp (k, rho, gamma) (e: exp) (v: value) : bool =
           check_exp (k, rho, gamma) r
             (VClos (update env x (VClos (rho, l)), b))
       | _ -> failwith "expected Sigma for pair")
-  | Pi (x, a, b)
+  | Pi (x, a, b) ->
+      (match whnf v with
+      | VType ->
+          let v' = VGen k in
+          let rho'   = update rho x v' in
+          let gamma' = update gamma x (VClos (rho, a)) in
+          check_type (k, rho, gamma) a &&
+          check_type (k + 1, rho', gamma') b
+      | _ -> failwith "expected Type")
   | Sigma (x, a, b) ->
       (match whnf v with
       | VType ->

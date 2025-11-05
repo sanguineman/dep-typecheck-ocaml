@@ -54,6 +54,44 @@ let pi6 () =
   let a = Pi ("A", Type, Type) in
   assert (Depcheck.typecheck m a)
 
+let sigma1 () =
+  (* (Type, Type) *)
+  let m = Pair (Type, Type) in
+  (* Σ(A : Type) Type *)
+  let a = Sigma ("A", Type, Type) in
+  assert (Depcheck.typecheck m a)
+
+let sigma2 () =
+  (* λA B x. fst(x) *)
+  let m = abs_list ["A"; "B"; "x"] (Fst (Var "x")) in
+  (* (A:Type) -> (B:Type) -> (x:Σ(y:A)B) -> A *)
+  let a = pi_list [("A", Type); ("B", Type); ("x", Sigma ("y", Var "A", Var "B"))] (Var "A") in
+  assert (Depcheck.typecheck m a)
+
+let sigma3 () =
+  (* λA B x. snd(x) *)
+  let m = abs_list ["A"; "B"; "x"] (Snd (Var "x")) in
+  (* (A:Type) -> (B:Type) -> (x:Σ(y:A)B) -> B *)
+  let a = pi_list [("A", Type); ("B", Type); ("x", Sigma ("y", Var "A", Var "B"))] (Var "B") in
+  assert (Depcheck.typecheck m a)
+
+let sigma4 () =
+  (* λA B x. x *)
+  let m = abs_list ["A"; "B"; "x"] (Var "x") in
+  (* (A:Type) -> (B:Type) ->(x:Σ(y:A)B) -> Σ(y:A)B *)
+  let t = Sigma ("y", Var "A", Var "B") in
+  let a = pi_list [("A", Type); ("B", Type); ("x", t)] t in
+  assert (Depcheck.typecheck m a)
+
+let sigma5 () =
+  (* λA B x. let a = fst(x) : A; let b = snd(x) : B; a *)
+  let m = abs_list ["A"; "B"; "x"] (
+    Let ("a", Fst (Var "x"), Var "A", 
+    Let ("b", Snd (Var "x"), Var "B", Var "a"))) in
+  (* (A:Type) -> (B:Type) -> (x:Σ(y:A)B) -> A *)
+  let a = pi_list [("A", Type); ("B", Type); ("x", Sigma ("y", Var "A", Var "B"))] (Var "A") in
+  assert (Depcheck.typecheck m a)
+
 let let1 () =
   (* let f = (λA. A) : Type -> Type; f *)
   let m = Let ("f", Abs ("X", Var "X"), Pi ("_", Type, Type), Var "f") in
@@ -99,6 +137,11 @@ let suite = [
   "Pi4", pi4;
   "Pi5", pi5;
   "Pi6", pi6;
+  "Sigma1", sigma1;
+  "Sigma2", sigma2;
+  "Sigma3", sigma3;
+  "Sigma4", sigma4;
+  "Sigma5", sigma5;
   "Let1", let1;
   "Let2", let2;
   "Let3", let3;
