@@ -11,6 +11,8 @@ type exp =
   | Pi of id * exp * exp (* (x: M) N *)
   | Sigma of id * exp * exp (* Σ(x : M) N *)
   | Type
+  | Unit (* unit type *)
+  | TT (* unit term *)
 
 (* p.170 2.1. Expressions and values *)
 type value =
@@ -20,6 +22,8 @@ type value =
   | VSnd of value
   | VType
   | VClos of env * exp
+  | VUnit
+  | VTT
 
 and env = (id * value) list
 

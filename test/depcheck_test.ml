@@ -130,6 +130,16 @@ let let5 () =
   let a = pi_list [("A", Type); ("P", tP); ("h", th); ("x", Var "A")] (App (Var "P", Var "x")) in
   assert (Depcheck.typecheck m a)
 
+let unit1 () =
+  assert (Depcheck.typecheck Unit Type)
+
+let unit2 () =
+  assert (Depcheck.typecheck TT Unit)
+
+let unit3 () =
+  let m = Let ("u", TT, Unit, Var "u") in
+  assert (Depcheck.typecheck m Unit)
+
 let suite = [
   "Pi1", pi1;
   "Pi2", pi2;
@@ -147,6 +157,9 @@ let suite = [
   "Let3", let3;
   "Let4", let4;
   "Let5", let5;
+  "Unit1", unit1;
+  "Unit2", unit2;
+  "Unit3", unit3;
 ]
 
 let unused_suite = [
