@@ -22,6 +22,8 @@ and eval (env: env) (e: exp) : value =
   | App (e1, e2) -> app (eval env e1) (eval env e2)
   | Let (x, e1, _, e3) -> eval (update env x (eval env e1)) e3
   | Type -> VType
+  | Unit -> VUnit
+  | TT -> VTT
   | _ -> VClos (env, e)
 
 (* p.172 2.3.1 Weak head normal form  *)
@@ -35,6 +37,8 @@ let rec whnf (v: value) : value =
 let rec eq_val (k, u1, u2) : bool =
   match (whnf u1, whnf u2) with
   | VType, VType -> true
+  | VUnit, VUnit -> true
+  | VTT, VTT -> true
   | VApp (t1, w1), VApp (t2, w2) ->
       eq_val (k, t1, t2) && eq_val (k, w1, w2)
   | VGen k1, VGen k2 -> k1 = k2
@@ -96,6 +100,8 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
           else failwith "application error"
       | _ -> failwith "application, expected Pi")
   | Type -> VType
+  | Unit -> VType
+  | TT -> VUnit
   | _ -> failwith "cannot infer type"
 
 let typecheck (m: exp) (a: exp) : bool =

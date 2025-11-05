@@ -7,6 +7,8 @@ type exp =
   | Let of id * exp * exp * exp  (* let x = M : A in N *)
   | Pi  of id * exp * exp (* (x: M) N *)
   | Type
+  | Unit (* unit type *)
+  | TT (* unit term *)
 
 (* p.170 2.1. Expressions and values *)
 type value =
@@ -14,6 +16,8 @@ type value =
   | VApp of value * value
   | VType
   | VClos of env * exp
+  | VUnit
+  | VTT
 
 and env = (id * value) list
 
