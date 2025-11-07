@@ -13,6 +13,10 @@ type exp =
   | Type
   | Unit (* unit type *)
   | TT (* unit term *)
+  | Nat
+  | Zero
+  | Succ of exp
+  | Rec of exp * exp * exp * exp (* Rec(Z,S,N,A) *)
 
 (* p.170 2.1. Expressions and values *)
 type value =
@@ -24,6 +28,9 @@ type value =
   | VClos of env * exp
   | VUnit
   | VTT
+  | VNat
+  | VZero
+  | VSucc of value
 
 and env = (id * value) list
 

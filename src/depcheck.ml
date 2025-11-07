@@ -17,14 +17,20 @@ let rec app (u: value) (v: value) : value =
   | _ -> VApp (u, v)
 
 and proj_l (v: value) : value =
-  match v with 
-  | VClos (env, Pair (l, _)) -> eval env l 
+  match v with
+  | VClos (env, Pair (l, _)) -> eval env l
   | _ -> VFst v
 
 and proj_r (v: value) : value =
-  match v with 
-  | VClos (env, Pair (_, r)) -> eval env r 
+  match v with
+  | VClos (env, Pair (_, r)) -> eval env r
   | _ -> VSnd v
+
+and rec_nat (z: value) (s: value) (n: value) : value =
+  match n with
+  | VZero -> z
+  | VSucc n' -> app (app s n') (rec_nat z s n')
+  | _ -> failwith "Rec: expected Nat"
 
 and eval (env: env) (e: exp) : value =
   match e with
@@ -36,6 +42,10 @@ and eval (env: env) (e: exp) : value =
   | Type -> VType
   | Unit -> VUnit
   | TT -> VTT
+  | Nat  -> VNat
+  | Zero -> VZero
+  | Succ e -> VSucc (eval env e)
+  | Rec (z, s, n, _) -> rec_nat (eval env z) (eval env s) (eval env n)
   | _ -> VClos (env, e)
 
 (* p.172 2.3.1 Weak head normal form  *)
@@ -45,6 +55,9 @@ let rec whnf (v: value) : value =
   | VFst u -> proj_l u
   | VSnd u -> proj_r u
   | VClos (env, e) -> eval env e
+  | VNat -> VNat
+  | VZero -> VZero
+  | VSucc u -> VSucc (whnf u)
   | _ -> v
 
 (* p.172 2.3.2. Conversion *)
@@ -53,6 +66,9 @@ let rec eq_val (k, u1, u2) : bool =
   | VType, VType -> true
   | VUnit, VUnit -> true
   | VTT, VTT -> true
+  | VNat, VNat -> true
+  | VZero, VZero -> true
+  | VSucc v1, VSucc v2 -> eq_val (k, v1, v2)
   | VApp (t1, w1), VApp (t2, w2) ->
       eq_val (k, t1, t2) && eq_val (k, w1, w2)
   | VFst w1, VFst w2 | VSnd w1, VSnd w2 -> eq_val (k, w1, w2)
@@ -139,18 +155,31 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
             VClos (update env x (VClos (rho, e2)), b)
           else failwith "application error"
       | _ -> failwith "application, expected Pi")
-  | Fst e -> 
+  | Fst e ->
       (match whnf (infer_exp (k, rho, gamma) e) with
       | VClos (env, Sigma (_x, a, _b)) -> VClos (env, a)
       | _ -> failwith "projection, expected Sigma")
-  | Snd e -> 
+  | Snd e ->
       (match whnf (infer_exp (k, rho, gamma) e) with
-      | VClos (env, Sigma (x, _a, b)) -> 
+      | VClos (env, Sigma (x, _a, b)) ->
           VClos (update env x (VClos (rho, Fst e)), b)
       | _ -> failwith "projection, expected Sigma")
   | Type -> VType
   | Unit -> VType
   | TT -> VUnit
+  | Nat -> VType
+  | Zero -> VNat
+  | Succ e ->
+    (match whnf (infer_exp (k, rho, gamma) e) with
+    | VNat -> VNat
+    | _ -> failwith "Succ, expected Nat")
+  | Rec (z, s, n, a) ->
+    let a_val = eval rho a in
+    if check_exp (k, rho, gamma) z (app a_val VZero) &&
+       check_exp (k, rho, gamma) s (VClos (rho, Pi ("x", Nat, Pi ("_", App (a, Var "x"), App (a, Succ (Var "x")))))) &&
+       check_exp (k, rho, gamma) n VNat
+    then app a_val (eval rho n)
+    else failwith "cannot infer type"
   | _ -> failwith "cannot infer type"
 
 let typecheck (m: exp) (a: exp) : bool =
