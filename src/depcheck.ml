@@ -26,6 +26,12 @@ and proj_r (v: value) : value =
   | VClos (env, Pair (_, r)) -> eval env r 
   | _ -> VSnd v
 
+and if_beta at af b ty : value =
+  match b with
+  | VClos (_, True) -> at
+  | VClos (_, False) -> af
+  | _ -> VIf (at, af, b, ty)
+
 and eval (env: env) (e: exp) : value =
   match e with
   | Var x -> lookup x env
@@ -33,9 +39,8 @@ and eval (env: env) (e: exp) : value =
   | Fst e -> proj_l (eval env e)
   | Snd e -> proj_r (eval env e)
   | Let (x, e1, _, e3) -> eval (update env x (eval env e1)) e3
+  | If (at, af, b, ty) -> if_beta (eval env at) (eval env af) (eval env b) (eval env ty)
   | Type -> VType
-  | Unit -> VUnit
-  | TT -> VTT
   | _ -> VClos (env, e)
 
 (* p.172 2.3.1 Weak head normal form  *)
@@ -44,6 +49,7 @@ let rec whnf (v: value) : value =
   | VApp (u, w) -> app (whnf u) (whnf w)
   | VFst u -> proj_l u
   | VSnd u -> proj_r u
+  | VIf (at, af, b, ty) -> if_beta at af b ty
   | VClos (env, e) -> eval env e
   | _ -> v
 
@@ -51,11 +57,16 @@ let rec whnf (v: value) : value =
 let rec eq_val (k, u1, u2) : bool =
   match (whnf u1, whnf u2) with
   | VType, VType -> true
-  | VUnit, VUnit -> true
-  | VTT, VTT -> true
+  | VClos (_, Unit), VClos (_, Unit)
+  | VClos (_, TT), VClos (_, TT)
+  | VClos (_, Bool), VClos (_, Bool)
+  | VClos (_, True), VClos (_, True)
+  | VClos (_, False), VClos (_, False) -> true
   | VApp (t1, w1), VApp (t2, w2) ->
       eq_val (k, t1, t2) && eq_val (k, w1, w2)
   | VFst w1, VFst w2 | VSnd w1, VSnd w2 -> eq_val (k, w1, w2)
+  | VIf (at1, af1, b1, ty1), VIf (at2, af2, b2, ty2) ->
+    eq_val (k, at1, at2) && eq_val (k, af1, af2) && eq_val (k, b1, b2) && eq_val (k, ty1, ty2)
   | VGen k1, VGen k2 -> k1 = k2
   | VClos (env1, Abs (x1, e1)), VClos (env2, Abs (x2, e2)) ->
       let v = VGen k in
@@ -150,7 +161,20 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
       | _ -> failwith "projection, expected Sigma")
   | Type -> VType
   | Unit -> VType
-  | TT -> VUnit
+  | TT -> VClos ([], Unit)
+  | Bool -> VType
+  | True -> VClos ([], Bool)
+  | False -> VClos ([], Bool)
+  | If (at, af, b, ty) ->
+      if check_exp (k, rho, gamma) ty (VClos([], Pi("x", Bool, Type))) |> not
+      then failwith "if (_, _, _, A) : A is not a function Bool -> Type"
+      else if check_exp (k, rho, gamma) at (VClos(rho, App(ty, True))) |> not
+      then failwith "if (at, _, _, A) : at do not have (A true) type"
+      else if check_exp (k, rho, gamma) af (VClos(rho, App(ty, False))) |> not
+      then failwith "if (_, af, _, A) : at do not have (A false) type"
+      else if check_exp (k, rho, gamma) b (VClos(rho, Bool)) |> not
+      then failwith "if (_, _, b, _) : b is not Bool type"
+      else VClos(rho, App (ty, b))
   | _ -> failwith "cannot infer type"
 
 let typecheck (m: exp) (a: exp) : bool =
