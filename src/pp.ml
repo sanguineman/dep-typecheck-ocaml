@@ -21,13 +21,18 @@ let rec string_of_exp e =
   | Type -> "Type"
   | Unit -> "Unit"
   | TT -> "TT"
+  | Bool -> "Bool"
+  | True -> "True"
+  | False -> "False"
+  | If (at, af, b, a) ->
+      "if (" ^ string_of_exp at ^ ", " ^ string_of_exp af ^ ",
+      " ^ string_of_exp b ^ ", " ^ string_of_exp a ^ ")"
   | Nat -> "Nat"
   | Zero -> "Zero"
   | Succ e -> "Succ(" ^ string_of_exp e ^ ")"
   | Rec (z, s, n, a) ->
     "Rec(" ^ string_of_exp z ^ ", " ^ string_of_exp s ^ ", " ^
     string_of_exp n ^ ", " ^ string_of_exp a ^ ")"
-  | _ -> failwith "Not yet"
 
 let rec string_of_val v =
   match v with
@@ -42,7 +47,9 @@ let rec string_of_val v =
   | VClos (_, Pi (x, a, b)) ->
       "Π" ^ x ^ ":" ^ string_of_exp a ^ ". " ^ string_of_exp b
   | VClos (_, e) -> string_of_exp e
-  | VNat -> "Nat"
-  | VZero -> "Zero"
-  | VSucc v -> "Succ(" ^ string_of_val v ^ ")"
-  | _ -> failwith "Not yet"
+  | VIf (at, af, b, ty) ->
+      "if (" ^ string_of_val at ^ ", " ^ string_of_val af ^ ",
+      " ^ string_of_val b ^ ", " ^ string_of_val ty ^ ")"
+  | VRec (z, s, n, a) ->
+    "Rec(" ^ string_of_val z ^ ", " ^ string_of_val s ^ ", " ^
+    string_of_val n ^ ", " ^ string_of_val a ^ ")"
