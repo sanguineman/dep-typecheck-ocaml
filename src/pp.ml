@@ -21,6 +21,12 @@ let rec string_of_exp e =
   | Type -> "Type"
   | Unit -> "Unit"
   | TT -> "TT"
+  | Nat -> "Nat"
+  | Zero -> "Zero"
+  | Succ e -> "Succ(" ^ string_of_exp e ^ ")"
+  | Rec (z, s, n, a) ->
+    "Rec(" ^ string_of_exp z ^ ", " ^ string_of_exp s ^ ", " ^
+    string_of_exp n ^ ", " ^ string_of_exp a ^ ")"
   | _ -> failwith "Not yet"
 
 let rec string_of_val v =
@@ -36,4 +42,7 @@ let rec string_of_val v =
   | VClos (_, Pi (x, a, b)) ->
       "Π" ^ x ^ ":" ^ string_of_exp a ^ ". " ^ string_of_exp b
   | VClos (_, e) -> string_of_exp e
+  | VNat -> "Nat"
+  | VZero -> "Zero"
+  | VSucc v -> "Succ(" ^ string_of_val v ^ ")"
   | _ -> failwith "Not yet"

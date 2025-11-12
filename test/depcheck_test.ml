@@ -72,7 +72,7 @@ let sigma2 () =
 let sigma3 () =
   (* λA B x. let a = fst(x) : A; let b = snd(x) : B; a *)
   let m = abs_list ["A"; "B"; "x"] (
-    Let ("a", Fst (Var "x"), Var "A", 
+    Let ("a", Fst (Var "x"), Var "A",
     Let ("b", Snd (Var "x"), Var "B", Var "a"))) in
   (* (A:Type) -> (B:Type) -> (x:Σ(y:A)B) -> A *)
   let a = pi_list [("A", Type); ("B", Type); ("x", Sigma ("y", Var "A", Var "B"))] (Var "A") in
@@ -80,7 +80,7 @@ let sigma3 () =
 
 let sigma4 () =
   (* λA f x. let a = f x : snd(A); a *)
-  let m = abs_list ["A"; "f"; "x"] 
+  let m = abs_list ["A"; "f"; "x"]
     (Let ("a", App (Var "f", Var "x"), Snd (Var "A"),  Var "a")) in
   (* (A:Σ(y:Type)Type) -> (f:(t:fst(A))-> snd(A)) -> (x:fst(A)) -> snd(A) *)
   let tA = Sigma ("y", Type, Type) in
@@ -90,7 +90,7 @@ let sigma4 () =
 
 let sigma5 () =
   (* λA f x. let a = f x : fst(A); a *)
-  let m = abs_list ["A"; "f"; "x"] 
+  let m = abs_list ["A"; "f"; "x"]
     (Let ("a", App (Var "f", Var "x"), Fst (Var "A"),  Var "a")) in
   (* (A:Σ(y:Type)Type) -> (f:(t:snd(A))-> fst(A)) -> (x:snd(A)) -> fst(A) *)
   let tA = Sigma ("y", Type, Type) in
@@ -99,18 +99,18 @@ let sigma5 () =
   assert (Depcheck.typecheck m a)
 
 let sigma6 () =
-  (* λA B x y. 
+  (* λA B x y.
     let p = pair(x, y) : Σ(z:A)B;
     let a = fst(p) : A;
     let b = snd(p) : B;
     pair(a, b) *)
-  let m = abs_list ["A"; "B"; "x"; "y"] 
-    (Let ("p", Pair (Var "x", Var "y"), Sigma ("z", Var "A", Var "B"),  
-     Let ("a", Fst (Var "p"), Var "A", 
+  let m = abs_list ["A"; "B"; "x"; "y"]
+    (Let ("p", Pair (Var "x", Var "y"), Sigma ("z", Var "A", Var "B"),
+     Let ("a", Fst (Var "p"), Var "A",
      Let ("b", Snd (Var "p"), Var "B",
      Pair (Var "a", Var "b"))))) in
   (* (A:Type) -> (B:Type) -> (x:A) -> (y:B) -> Σ(z:A)B *)
-  let a = pi_list [("A", Type); ("B", Type); ("x", Var "A"); ("y", Var "B")] 
+  let a = pi_list [("A", Type); ("B", Type); ("x", Var "A"); ("y", Var "B")]
     (Sigma ("z", Var "A", Var "B")) in
   assert (Depcheck.typecheck m a)
 
@@ -154,8 +154,8 @@ let let5 () =
 
 let let6 () =
   (* λA f x. let g = (λy. f y) : ((y:A) -> A); let a = g x : A; a *)
-  let m = abs_list ["A"; "f"; "x"] 
-    (Let ("g", Abs ("y", App (Var "f", Var "y")), Pi ("y", Var "A", Var "A"), 
+  let m = abs_list ["A"; "f"; "x"]
+    (Let ("g", Abs ("y", App (Var "f", Var "y")), Pi ("y", Var "A", Var "A"),
      Let ("a", App (Var "g", Var "x"), Var "A", Var "a"))) in
   (* (A:Type) -> (f:(t:A)->A) -> (x:A) -> A *)
   let tf = pi_list [("t", Var "A")] (Var "A") in
@@ -177,7 +177,7 @@ let bool1 () =
   assert (Depcheck.typecheck False Bool);
   assert (Depcheck.typecheck Bool Type)
 
-let bool2 () = 
+let bool2 () =
   (* if(false, true, true, (λb. Bool)) *)
   let m = If(False, True, True, Abs("b", Bool)) in
   let a = Bool in
@@ -196,6 +196,32 @@ let bool4 () =
   let m = If(TT, False, True, Abs("b", If(Unit, Bool, Var "b", Abs ("x", Type)))) in
   let a = Unit in
   assert (Depcheck.typecheck m a)
+
+let nat1 () =
+  assert (Depcheck.typecheck Zero Nat)
+
+let nat2 () =
+  assert (Depcheck.typecheck (Succ (Succ Zero)) Nat)
+
+let nat3 () =
+  let m = Rec (TT, Abs ("y", Abs ("z", TT)), Succ (Succ Zero), Abs ("w", Unit)) in
+  assert (Depcheck.typecheck m Unit)
+
+let nat4 () =
+  let m = Rec (TT, Abs ("y", Abs ("z", TT)), Zero, Abs ("w", Unit)) in
+  assert (Depcheck.typecheck m Unit)
+
+let nat5 () =
+  (* Rec(λx. x, λ_.λf.λy. Succ (f y), Zero, (λ_. (_: Nat) Nat) *)
+  let plus0 = Rec (Abs ("x", Var "x"), Abs ("_", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Zero, Abs ("_", Pi ("_", Nat, Nat))) in
+  assert (Depcheck.typecheck plus0 (Pi ("y", Nat, Nat)))
+
+let nat6 () =
+  (* Rec(λx. x, λ_.λf.λy. Succ (f y), Succ (Succ Zero), (λ_. (_: Nat) Nat) *)
+  let plus2 = Rec (Abs ("x", Var "x"), Abs ("_", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Succ (Succ Zero), Abs ("_", Pi ("_", Nat, Nat))) in
+  (* plus2 3*)
+  let applied = App (plus2, Succ (Succ (Succ Zero))) in
+  assert (Depcheck.typecheck applied Nat)
 
 let suite = [
   "Pi1", pi1;
@@ -223,6 +249,12 @@ let suite = [
   "Bool2", bool2;
   "Bool3", bool3;
   "Bool4", bool4;
+  "Nat1", nat1;
+  "Nat2", nat2;
+  "Nat3", nat3;
+  "Nat4", nat4;
+  "Nat5", nat5;
+  "Nat6", nat6;
 ]
 
 let unused_suite = [
