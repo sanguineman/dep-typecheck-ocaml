@@ -116,9 +116,9 @@ let sigma6 () =
 
 let let1 () =
   (* let f = (λA. A) : Type -> Type; f *)
-  let m = Let ("f", Abs ("X", Var "X"), Pi ("_", Type, Type), Var "f") in
+  let m = Let ("f", Abs ("X", Var "X"), Pi ("x", Type, Type), Var "f") in
   (* Type -> Type *)
-  let a = Pi("_", Type, Type) in
+  let a = Pi("x", Type, Type) in
   assert (Depcheck.typecheck m a)
 
 let let2 () =
@@ -138,7 +138,7 @@ let let3 () =
 let let4 () =
   (* let f = (λX. (X: Type) -> Type) : (X: Type) -> Type; let F = (λg x. g (g x)) : (g: Type -> Type) -> x: Type -> Type; F f Type *)
   let m = Let ("f", Abs ("X", Pi("X", Type, Var "X")), Pi ("X", Type, Type),
-          Let ("F", abs_list ["g"; "x"] (App(Var "g", App(Var "g", Var "x"))), Pi("_", Pi("_", Type, Type), Pi("_", Type, Type)),
+          Let ("F", abs_list ["g"; "x"] (App(Var "g", App(Var "g", Var "x"))), Pi("x", Pi("x", Type, Type), Pi("x", Type, Type)),
           App (App (Var "F", Var "f"), Type))) in
   let a = Type in
   assert (Depcheck.typecheck m a)
@@ -197,6 +197,24 @@ let bool4 () =
   let a = Unit in
   assert (Depcheck.typecheck m a)
 
+let coprod1 () =
+  assert (Depcheck.typecheck (Coprod(Unit, Bool)) Type);
+  assert (Depcheck.typecheck (Inl(TT)) (Coprod(Unit, Bool)));
+  assert (Depcheck.typecheck (Inr(False)) (Coprod(Unit, Bool)))
+
+let coprod2 () =
+  let _m = Case (Abs ("x", True), Abs ("x", False), Var "p", Abs ("x", Bool)) in
+  let m = Let ("p", Inl(TT), Coprod(Unit, Bool), _m) in
+  let a = Bool in
+  assert (Depcheck.typecheck m a)
+
+let coprod3 () =
+  let __m = Case (Abs ("x", Unit), Abs ("x", Bool), Var "x", Abs ("x", Type)) in
+  let _m = Case (Abs ("x", TT), Abs ("x", False), Var "p", Abs ("x", __m)) in
+  let m = Let ("p", Inr(False), Coprod(Unit, Bool), _m) in
+  let a = Bool in
+  assert (Depcheck.typecheck m a)
+
 let nat1 () =
   assert (Depcheck.typecheck Zero Nat)
 
@@ -213,18 +231,18 @@ let nat4 () =
 
 let nat5 () =
   (* Rec(λx. x, λ_.λf.λy. Succ (f y), Zero, (λ_. (_: Nat) Nat) *)
-  let plus0 = Rec (Abs ("x", Var "x"), Abs ("_", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Zero, Abs ("_", Pi ("_", Nat, Nat))) in
+  let plus0 = Rec (Abs ("x", Var "x"), Abs ("z", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Zero, Abs ("z", Pi ("z", Nat, Nat))) in
   assert (Depcheck.typecheck plus0 (Pi ("y", Nat, Nat)))
 
 let nat6 () =
   (* Rec(λx. x, λ_.λf.λy. Succ (f y), Succ (Succ Zero), (λ_. (_: Nat) Nat) *)
-  let plus2 = Rec (Abs ("x", Var "x"), Abs ("_", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Succ (Succ Zero), Abs ("_", Pi ("_", Nat, Nat))) in
+  let plus2 = Rec (Abs ("x", Var "x"), Abs ("z", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Succ (Succ Zero), Abs ("z", Pi ("z", Nat, Nat))) in
   (* plus2 3*)
   let applied = App (plus2, Succ (Succ (Succ Zero))) in
   assert (Depcheck.typecheck applied Nat)
 
 let nat7 () =
-  let _m = Rec (Unit, Abs ("x", Abs ("y", Bool)), Var "n", Abs ("_", Type)) in
+  let _m = Rec (Unit, Abs ("x", Abs ("y", Bool)), Var "n", Abs ("z", Type)) in
   let m = Rec (TT, Abs ("x", Abs ("y", True)), Zero, Abs("n", _m)) in
   assert (Depcheck.typecheck m Unit)
 
@@ -254,6 +272,9 @@ let suite = [
   "Bool2", bool2;
   "Bool3", bool3;
   "Bool4", bool4;
+  "Coprod1", coprod1;
+  "Coprod2", coprod2;
+  "Coprod3", coprod3;
   "Nat1", nat1;
   "Nat2", nat2;
   "Nat3", nat3;
