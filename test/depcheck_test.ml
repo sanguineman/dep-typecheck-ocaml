@@ -223,6 +223,11 @@ let nat6 () =
   let applied = App (plus2, Succ (Succ (Succ Zero))) in
   assert (Depcheck.typecheck applied Nat)
 
+let nat7 () =
+  let _m = Rec (Unit, Abs ("x", Abs ("y", Bool)), Var "n", Abs ("_", Type)) in
+  let m = Rec (TT, Abs ("x", Abs ("y", True)), Zero, Abs("n", _m)) in
+  assert (Depcheck.typecheck m Unit)
+
 let suite = [
   "Pi1", pi1;
   "Pi2", pi2;
@@ -255,6 +260,7 @@ let suite = [
   "Nat4", nat4;
   "Nat5", nat5;
   "Nat6", nat6;
+  "Nat7", nat7;
 ]
 
 let unused_suite = [

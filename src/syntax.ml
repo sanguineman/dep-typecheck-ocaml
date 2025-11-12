@@ -31,9 +31,7 @@ type value =
   | VType
   | VClos of env * exp
   | VIf of value * value * value * value
-  | VNat
-  | VZero
-  | VSucc of value
+  | VRec of value * value * value * value
 
 and env = (id * value) list
 

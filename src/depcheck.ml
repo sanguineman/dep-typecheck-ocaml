@@ -32,11 +32,12 @@ and if_beta at af b ty : value =
   | VClos (_, False) -> af
   | _ -> VIf (at, af, b, ty)
 
-and rec_nat (z: value) (s: value) (n: value) : value =
+and rec_beta z s n a: value =
   match n with
-  | VZero -> z
-  | VSucc n' -> app (app s n') (rec_nat z s n')
-  | _ -> failwith "Rec: expected Nat"
+  | VClos (_, Zero) -> z
+  | VClos (_, Succ e) ->
+    app (app s (VClos ([], e))) (rec_beta z s (VClos ([], e)) a)
+  | _ -> VRec (z, s, n, a)
 
 and eval (env: env) (e: exp) : value =
   match e with
@@ -47,10 +48,7 @@ and eval (env: env) (e: exp) : value =
   | Let (x, e1, _, e3) -> eval (update env x (eval env e1)) e3
   | If (at, af, b, ty) -> if_beta (eval env at) (eval env af) (eval env b) (eval env ty)
   | Type -> VType
-  | Nat  -> VNat
-  | Zero -> VZero
-  | Succ e -> VSucc (eval env e)
-  | Rec (z, s, n, _) -> rec_nat (eval env z) (eval env s) (eval env n)
+  | Rec (z, s, n, a) -> rec_beta (eval env z) (eval env s) (eval env n) (eval env a)
   | _ -> VClos (env, e)
 
 (* p.172 2.3.1 Weak head normal form  *)
@@ -61,9 +59,7 @@ let rec whnf (v: value) : value =
   | VSnd u -> proj_r u
   | VIf (at, af, b, ty) -> if_beta at af b ty
   | VClos (env, e) -> eval env e
-  | VNat -> VNat
-  | VZero -> VZero
-  | VSucc u -> VSucc (whnf u)
+  | VRec (z, s, n, a) -> rec_beta z s n a
   | _ -> v
 
 (* p.172 2.3.2. Conversion *)
@@ -75,9 +71,12 @@ let rec eq_val (k, u1, u2) : bool =
   | VClos (_, Bool), VClos (_, Bool)
   | VClos (_, True), VClos (_, True)
   | VClos (_, False), VClos (_, False) -> true
-  | VNat, VNat -> true
-  | VZero, VZero -> true
-  | VSucc v1, VSucc v2 -> eq_val (k, v1, v2)
+  | VClos (_, Nat), VClos (_, Nat) -> true
+  | VClos (_, Zero), VClos (_, Zero) -> true
+  | VClos (env1, Succ e1), VClos (env2, Succ e2) ->
+    eq_val (k, VClos (env1, e1), VClos (env2, e2))
+  | VRec (z1, s1, n1, a1), VRec (z2, s2, n2, a2) ->
+    eq_val (k, z1, z2) && eq_val (k, s1, s2) && eq_val (k, n1, n2) && eq_val (k, a1, a2)
   | VApp (t1, w1), VApp (t2, w2) ->
       eq_val (k, t1, t2) && eq_val (k, w1, w2)
   | VFst w1, VFst w2 | VSnd w1, VSnd w2 -> eq_val (k, w1, w2)
@@ -192,16 +191,16 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
       then failwith "if (_, _, b, _) : b is not Bool type"
       else VClos(rho, App (ty, b))
   | Nat -> VType
-  | Zero -> VNat
+  | Zero -> VClos ([], Nat)
   | Succ e ->
     (match whnf (infer_exp (k, rho, gamma) e) with
-    | VNat -> VNat
+    | VClos (_, Nat) -> VClos ([], Nat)
     | _ -> failwith "Succ, expected Nat")
   | Rec (z, s, n, a) ->
     let a_val = eval rho a in
-    if check_exp (k, rho, gamma) z (app a_val VZero) &&
+    if check_exp (k, rho, gamma) z (app a_val (VClos (rho, Zero))) &&
        check_exp (k, rho, gamma) s (VClos (rho, Pi ("x", Nat, Pi ("_", App (a, Var "x"), App (a, Succ (Var "x")))))) &&
-       check_exp (k, rho, gamma) n VNat
+       check_exp (k, rho, gamma) n (VClos (rho, Nat))
     then app a_val (eval rho n)
     else failwith "cannot infer type"
   | _ -> failwith "cannot infer type"
