@@ -172,6 +172,31 @@ let unit3 () =
   let m = Let ("u", TT, Unit, Var "u") in
   assert (Depcheck.typecheck m Unit)
 
+let bool1 () =
+  assert (Depcheck.typecheck True Bool);
+  assert (Depcheck.typecheck False Bool);
+  assert (Depcheck.typecheck Bool Type)
+
+let bool2 () = 
+  (* if(false, true, true, (λb. Bool)) *)
+  let m = If(False, True, True, Abs("b", Bool)) in
+  let a = Bool in
+  assert (Depcheck.typecheck m a)
+
+let bool3 () =
+  (* Acts like Large Elimination *)
+  (* if(Unit, Bool, false, (λb. Type)) *)
+  let m = If(Unit, Bool, False, Abs("x", Type)) in
+  let a = Type in
+  assert (Depcheck.typecheck m a)
+
+let bool4 () =
+  (* Outermost Type Depends on Term *)
+  (* if(tt, false, true, (λb. if(Unit, Bool, b, (λx. Bool)))) *)
+  let m = If(TT, False, True, Abs("b", If(Unit, Bool, Var "b", Abs ("x", Type)))) in
+  let a = Unit in
+  assert (Depcheck.typecheck m a)
+
 let suite = [
   "Pi1", pi1;
   "Pi2", pi2;
@@ -194,6 +219,10 @@ let suite = [
   "Unit1", unit1;
   "Unit2", unit2;
   "Unit3", unit3;
+  "Bool1", bool1;
+  "Bool2", bool2;
+  "Bool3", bool3;
+  "Bool4", bool4;
 ]
 
 let unused_suite = [

@@ -21,12 +21,11 @@ let rec string_of_exp e =
   | Type -> "Type"
   | Unit -> "Unit"
   | TT -> "TT"
+  | _ -> failwith "Not yet"
 
 let rec string_of_val v =
   match v with
   | VType -> "Type"
-  | VUnit -> "Unit"
-  | VTT -> "TT"
   | VGen k -> "g" ^ string_of_int k
   | VApp (v1, v2) ->
       "(" ^ string_of_val v1 ^ " " ^ string_of_val v2 ^ ")"
@@ -37,3 +36,4 @@ let rec string_of_val v =
   | VClos (_, Pi (x, a, b)) ->
       "Π" ^ x ^ ":" ^ string_of_exp a ^ ". " ^ string_of_exp b
   | VClos (_, e) -> string_of_exp e
+  | _ -> failwith "Not yet"

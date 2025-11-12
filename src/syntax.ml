@@ -13,6 +13,10 @@ type exp =
   | Type
   | Unit (* unit type *)
   | TT (* unit term *)
+  | Bool (* Boolean type *)
+  | True (* true term *)
+  | False (* false term *)
+  | If of exp * exp * exp * exp (* if (a_t, a_f, b, A) *)
 
 (* p.170 2.1. Expressions and values *)
 type value =
@@ -22,8 +26,7 @@ type value =
   | VSnd of value
   | VType
   | VClos of env * exp
-  | VUnit
-  | VTT
+  | VIf of value * value * value * value
 
 and env = (id * value) list
 
