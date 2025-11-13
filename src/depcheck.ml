@@ -32,6 +32,12 @@ and if_beta at af b ty : value =
   | VClos (_, False) -> af
   | _ -> VIf (at, af, b, ty)
 
+and case_beta al ar p ty : value =
+  match p with
+  | VClos (env, Inl e) -> app al (eval env e)
+  | VClos (env, Inr e) -> app ar (eval env e)
+  | _ -> VCase (al, ar, p, ty)
+
 and rec_beta z s n a: value =
   match n with
   | VClos (_, Zero) -> z
@@ -42,23 +48,25 @@ and rec_beta z s n a: value =
 and eval (env: env) (e: exp) : value =
   match e with
   | Var x -> lookup x env
+  | Type -> VType
   | App (e1, e2) -> app (eval env e1) (eval env e2)
   | Fst e -> proj_l (eval env e)
   | Snd e -> proj_r (eval env e)
   | Let (x, e1, _, e3) -> eval (update env x (eval env e1)) e3
   | If (at, af, b, ty) -> if_beta (eval env at) (eval env af) (eval env b) (eval env ty)
-  | Type -> VType
+  | Case (al, ar, p, ty) -> case_beta (eval env al) (eval env ar) (eval env p) (eval env ty)
   | Rec (z, s, n, a) -> rec_beta (eval env z) (eval env s) (eval env n) (eval env a)
   | _ -> VClos (env, e)
 
 (* p.172 2.3.1 Weak head normal form  *)
 let rec whnf (v: value) : value =
   match v with
+  | VClos (env, e) -> eval env e
   | VApp (u, w) -> app (whnf u) (whnf w)
   | VFst u -> proj_l u
   | VSnd u -> proj_r u
   | VIf (at, af, b, ty) -> if_beta at af b ty
-  | VClos (env, e) -> eval env e
+  | VCase (al, ar, p, ty) -> case_beta al ar p ty
   | VRec (z, s, n, a) -> rec_beta z s n a
   | _ -> v
 
@@ -70,18 +78,27 @@ let rec eq_val (k, u1, u2) : bool =
   | VClos (_, TT), VClos (_, TT)
   | VClos (_, Bool), VClos (_, Bool)
   | VClos (_, True), VClos (_, True)
-  | VClos (_, False), VClos (_, False) -> true
-  | VClos (_, Nat), VClos (_, Nat) -> true
+  | VClos (_, False), VClos (_, False)
+  | VClos (_, Nat), VClos (_, Nat)
   | VClos (_, Zero), VClos (_, Zero) -> true
-  | VClos (env1, Succ e1), VClos (env2, Succ e2) ->
-    eq_val (k, VClos (env1, e1), VClos (env2, e2))
-  | VRec (z1, s1, n1, a1), VRec (z2, s2, n2, a2) ->
-    eq_val (k, z1, z2) && eq_val (k, s1, s2) && eq_val (k, n1, n2) && eq_val (k, a1, a2)
   | VApp (t1, w1), VApp (t2, w2) ->
       eq_val (k, t1, t2) && eq_val (k, w1, w2)
   | VFst w1, VFst w2 | VSnd w1, VSnd w2 -> eq_val (k, w1, w2)
   | VIf (at1, af1, b1, ty1), VIf (at2, af2, b2, ty2) ->
     eq_val (k, at1, at2) && eq_val (k, af1, af2) && eq_val (k, b1, b2) && eq_val (k, ty1, ty2)
+  | VClos (env1, Coprod (a1, b1)), VClos (env2, Coprod (a2, b2)) ->
+    eq_val (k, VClos (env1, a1), VClos (env2, a2))
+    && eq_val (k, VClos (env1, b1), VClos (env2, b2))
+  | VClos (env1, Inl (e1)), VClos (env2, Inl (e2)) ->
+    eq_val (k, VClos (env1, e1), VClos (env2, e2))
+  | VClos (env1, Inr (e1)), VClos (env2, Inr (e2)) ->
+    eq_val (k, VClos (env1, e1), VClos (env2, e2))
+  | VCase (al1, ar1, p1, ty1), VCase (al2, ar2, p2, ty2) ->
+    eq_val (k, al1, al2) && eq_val (k, ar1, ar2) && eq_val (k, p1, p2) && eq_val (k, ty1, ty2)
+  | VClos (env1, Succ e1), VClos (env2, Succ e2) ->
+    eq_val (k, VClos (env1, e1), VClos (env2, e2))
+  | VRec (z1, s1, n1, a1), VRec (z2, s2, n2, a2) ->
+    eq_val (k, z1, z2) && eq_val (k, s1, s2) && eq_val (k, n1, n2) && eq_val (k, a1, a2)
   | VGen k1, VGen k2 -> k1 = k2
   | VClos (env1, Abs (x1, e1)), VClos (env2, Abs (x2, e2)) ->
       let v = VGen k in
@@ -151,6 +168,18 @@ and check_exp (k, rho, gamma) (e: exp) (v: value) : bool =
       let gamma' = update gamma x (eval rho e2) in
       check_type (k, rho, gamma) e2 &&
       check_exp (k, rho', gamma') e3 v
+  | Inl e ->
+      (match whnf v with
+      | VClos(env, Coprod (a, b)) -> 
+        check_type (k, rho, gamma) b &&
+        check_exp (k, rho, gamma) e (VClos(env, a))
+      | _ -> failwith "expected Coprod type for inl")
+  | Inr e ->
+      (match whnf v with
+      | VClos(env, Coprod (a, b)) -> 
+        check_type (k, rho, gamma) a &&
+        check_exp (k, rho, gamma) e (VClos(env, b))
+      | _ -> failwith "expected Coprod type for inr")
   | _ ->
       eq_val (k, infer_exp (k, rho, gamma) e, v)
 
@@ -181,7 +210,7 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
   | True -> VClos ([], Bool)
   | False -> VClos ([], Bool)
   | If (at, af, b, ty) ->
-      if check_exp (k, rho, gamma) ty (VClos([], Pi("x", Bool, Type))) |> not
+      if check_exp (k, rho, gamma) ty (VClos([], Pi("_", Bool, Type))) |> not
       then failwith "if (_, _, _, A) : A is not a function Bool -> Type"
       else if check_exp (k, rho, gamma) at (VClos(rho, App(ty, True))) |> not
       then failwith "if (at, _, _, A) : at do not have (A true) type"
@@ -190,6 +219,32 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
       else if check_exp (k, rho, gamma) b (VClos(rho, Bool)) |> not
       then failwith "if (_, _, b, _) : b is not Bool type"
       else VClos(rho, App (ty, b))
+  | Coprod (a, b) ->
+      if check_type (k, rho, gamma) a |> not
+      then failwith "(A+B) : expected A type"
+      else if check_type (k, rho, gamma) b |> not
+      then failwith "(A+B) : expected B type"
+      else VType
+  | Case (al, ar, p, ty) ->
+      (match whnf (infer_exp (k, rho, gamma) p) with
+      | VClos(env, Coprod(a, b)) ->
+        let check_func_type rho exp ptype rtype =
+          match whnf (VClos(rho, exp)) with
+          | VClos(rho', Abs(z, m)) ->
+            let v = VGen k in
+            let rho' = update rho' z v in
+            let gamma' = update gamma z ptype in
+            check_exp (k + 1, rho', gamma') m (rtype z v)
+          | _ -> failwith "cannot infer Pi type"
+        in
+          if check_func_type rho ty (VClos(env, Coprod(a, b))) (fun _ _ -> VType) |> not
+          then failwith "case (_, _, p, T) : T is not (A+B) -> Type type"
+          else if check_func_type rho al (VClos(env, a)) (fun x v -> VClos((update rho x v), App(ty, Inl(Var x)))) |> not
+          then failwith "case (al, _, p, T) : al is not A -> T inl(p) type"
+          else if check_func_type rho ar (VClos(env, b)) (fun x v -> VClos((update rho x v), App(ty, Inr(Var x)))) |> not
+          then failwith "case (_, ar, p, T) : ar is not A -> T inr(p) type"
+          else VClos (rho, App(ty, p))
+      | _ -> failwith "case (_, _, p, _) : p is not Coprod type")
   | Nat -> VType
   | Zero -> VClos ([], Nat)
   | Succ e ->
@@ -199,7 +254,7 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
   | Rec (z, s, n, a) ->
     let a_val = eval rho a in
     if check_exp (k, rho, gamma) z (app a_val (VClos (rho, Zero))) &&
-       check_exp (k, rho, gamma) s (VClos (rho, Pi ("x", Nat, Pi ("_", App (a, Var "x"), App (a, Succ (Var "x")))))) &&
+       check_exp (k, rho, gamma) s (VClos (rho, Pi ("_x", Nat, Pi ("_", App (a, Var "_x"), App (a, Succ (Var "_x")))))) &&
        check_exp (k, rho, gamma) n (VClos (rho, Nat))
     then app a_val (eval rho n)
     else failwith "cannot infer type"

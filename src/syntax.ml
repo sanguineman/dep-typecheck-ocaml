@@ -17,6 +17,10 @@ type exp =
   | True (* true term *)
   | False (* false term *)
   | If of exp * exp * exp * exp (* if (a_t, a_f, b, A) *)
+  | Coprod of exp * exp (* A + B type *)
+  | Inl of exp
+  | Inr of exp
+  | Case of exp * exp * exp * exp (* case (a_l, a_r, p, A) *)
   | Nat
   | Zero
   | Succ of exp
@@ -31,6 +35,7 @@ type value =
   | VType
   | VClos of env * exp
   | VIf of value * value * value * value
+  | VCase of value * value * value * value
   | VRec of value * value * value * value
 
 and env = (id * value) list

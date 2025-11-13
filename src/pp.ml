@@ -4,7 +4,7 @@ let rec string_of_exp e =
   match e with
   | Var x -> x
   | App (e1, e2) ->
-      "(" ^ string_of_exp e1 ^ " " ^ string_of_exp e2 ^ ")"
+      "(" ^ string_of_exp e1 ^ ") (" ^ string_of_exp e2 ^ ")"
   | Abs (x, body) ->
       "λ" ^ x ^ ". " ^ string_of_exp body
   | Pair (e1, e2) ->
@@ -27,6 +27,10 @@ let rec string_of_exp e =
   | If (at, af, b, a) ->
       "if (" ^ string_of_exp at ^ ", " ^ string_of_exp af ^ ",
       " ^ string_of_exp b ^ ", " ^ string_of_exp a ^ ")"
+    | Coprod (a, b) -> "(" ^ string_of_exp a ^ " + " ^ string_of_exp b ^ ")"
+    | Inl e -> "inl(" ^ string_of_exp e ^ ")"
+    | Inr e -> "inr(" ^ string_of_exp e ^ ")"
+    | Case (al, ar, p, a) -> "case(" ^ string_of_exp al ^ ", " ^ string_of_exp ar ^ ", " ^ string_of_exp p ^ ", " ^ string_of_exp a ^ ")"
   | Nat -> "Nat"
   | Zero -> "Zero"
   | Succ e -> "Succ(" ^ string_of_exp e ^ ")"
@@ -50,6 +54,9 @@ let rec string_of_val v =
   | VIf (at, af, b, ty) ->
       "if (" ^ string_of_val at ^ ", " ^ string_of_val af ^ ",
       " ^ string_of_val b ^ ", " ^ string_of_val ty ^ ")"
+  | VCase (al, ar, p, ty) ->
+      "case (" ^ string_of_val al ^ ", " ^ string_of_val ar ^ ",
+      " ^ string_of_val p ^ ", " ^ string_of_val ty ^ ")"
   | VRec (z, s, n, a) ->
     "Rec(" ^ string_of_val z ^ ", " ^ string_of_val s ^ ", " ^
     string_of_val n ^ ", " ^ string_of_val a ^ ")"
