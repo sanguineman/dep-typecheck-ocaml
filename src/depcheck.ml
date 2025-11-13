@@ -35,8 +35,8 @@ and if_beta at af b ty : value =
 and rec_beta z s n a: value =
   match n with
   | VClos (_, Zero) -> z
-  | VClos (_, Succ e) ->
-    app (app s (VClos ([], e))) (rec_beta z s (VClos ([], e)) a)
+  | VClos (env, Succ e) ->
+    app (app s (VClos (env, e))) (rec_beta z s (VClos (env, e)) a)
   | _ -> VRec (z, s, n, a)
 
 and eval (env: env) (e: exp) : value =
