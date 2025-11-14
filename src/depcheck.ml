@@ -170,13 +170,13 @@ and check_exp (k, rho, gamma) (e: exp) (v: value) : bool =
       check_exp (k, rho', gamma') e3 v
   | Inl e ->
       (match whnf v with
-      | VClos(env, Coprod (a, b)) -> 
+      | VClos(env, Coprod (a, b)) ->
         check_type (k, rho, gamma) b &&
         check_exp (k, rho, gamma) e (VClos(env, a))
       | _ -> failwith "expected Coprod type for inl")
   | Inr e ->
       (match whnf v with
-      | VClos(env, Coprod (a, b)) -> 
+      | VClos(env, Coprod (a, b)) ->
         check_type (k, rho, gamma) a &&
         check_exp (k, rho, gamma) e (VClos(env, b))
       | _ -> failwith "expected Coprod type for inr")
@@ -253,7 +253,8 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
     | _ -> failwith "Succ, expected Nat")
   | Rec (z, s, n, a) ->
     let a_val = eval rho a in
-    if check_exp (k, rho, gamma) z (app a_val (VClos (rho, Zero))) &&
+    if check_exp (k, rho, gamma) a (VClos ([], Pi ("_", Nat, Type))) &&
+       check_exp (k, rho, gamma) z (app a_val (VClos (rho, Zero))) &&
        check_exp (k, rho, gamma) s (VClos (rho, Pi ("_x", Nat, Pi ("_", App (a, Var "_x"), App (a, Succ (Var "_x")))))) &&
        check_exp (k, rho, gamma) n (VClos (rho, Nat))
     then app a_val (eval rho n)
