@@ -253,9 +253,15 @@ and infer_exp (k, rho, gamma) (e: exp) : value =
     | _ -> failwith "Succ, expected Nat")
   | Rec (z, s, n, a) ->
     let a_val = eval rho a in
+    let rec fresh str =
+      if List.exists (fun (x, _) -> x = str) rho
+      then fresh ("_" ^ str)
+      else str
+    in
+    let fname = fresh "_x" in
     if check_exp (k, rho, gamma) a (VClos ([], Pi ("_", Nat, Type))) &&
        check_exp (k, rho, gamma) z (app a_val (VClos (rho, Zero))) &&
-       check_exp (k, rho, gamma) s (VClos (rho, Pi ("_x", Nat, Pi ("_", App (a, Var "_x"), App (a, Succ (Var "_x")))))) &&
+       check_exp (k, rho, gamma) s (VClos (rho, Pi (fname, Nat, Pi ("_", App (a, Var fname), App (a, Succ (Var fname)))))) &&
        check_exp (k, rho, gamma) n (VClos (rho, Nat))
     then app a_val (eval rho n)
     else failwith "cannot infer type"

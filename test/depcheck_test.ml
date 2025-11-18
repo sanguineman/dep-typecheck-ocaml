@@ -123,22 +123,22 @@ let let1 () =
 
 let let2 () =
   (* let f = (λX. X) : (X: Type) -> Type; f (f Type) *)
-  let m = Let ("f", Abs ("X", Var "X"), Pi ("X", Type, Type), App (Var "f", App (Var "f", Type))) in
+  let m = Let ("f", Abs ("X", Var "X"), Pi ("x", Type, Type), App (Var "f", App (Var "f", Type))) in
   (* Type *)
   let a = Type in
   assert (Depcheck.typecheck m a)
 
 let let3 () =
   (* let f = (let Y = Type : Type; (λX. X)) : (X: Type) -> Type; f Type *)
-  let m = Let ("f", Let("Y", Type, Type, Abs ("X", Var "X")), Pi ("X", Type, Type), App (Var "f", Type)) in
+  let m = Let ("f", Let("Y", Type, Type, Abs ("X", Var "X")), Pi ("x", Type, Type), App (Var "f", Type)) in
   (* Type *)
   let a = Type in
   assert (Depcheck.typecheck m a)
 
 let let4 () =
   (* let f = (λX. (X: Type) -> Type) : (X: Type) -> Type; let F = (λg x. g (g x)) : (g: Type -> Type) -> x: Type -> Type; F f Type *)
-  let m = Let ("f", Abs ("X", Pi("X", Type, Var "X")), Pi ("X", Type, Type),
-          Let ("F", abs_list ["g"; "x"] (App(Var "g", App(Var "g", Var "x"))), Pi("x", Pi("x", Type, Type), Pi("x", Type, Type)),
+  let m = Let ("f", Abs ("X", Pi("X", Type, Var "X")), Pi ("z1", Type, Type),
+          Let ("F", abs_list ["g"; "x"] (App(Var "g", App(Var "g", Var "x"))), Pi("z2", Pi("z3", Type, Type), Pi("z4", Type, Type)),
           App (App (Var "F", Var "f"), Type))) in
   let a = Type in
   assert (Depcheck.typecheck m a)
@@ -155,7 +155,7 @@ let let5 () =
 let let6 () =
   (* λA f x. let g = (λy. f y) : ((y:A) -> A); let a = g x : A; a *)
   let m = abs_list ["A"; "f"; "x"]
-    (Let ("g", Abs ("y", App (Var "f", Var "y")), Pi ("y", Var "A", Var "A"),
+    (Let ("g", Abs ("y", App (Var "f", Var "y")), Pi ("y2", Var "A", Var "A"),
      Let ("a", App (Var "g", Var "x"), Var "A", Var "a"))) in
   (* (A:Type) -> (f:(t:A)->A) -> (x:A) -> A *)
   let tf = pi_list [("t", Var "A")] (Var "A") in
@@ -203,14 +203,14 @@ let coprod1 () =
   assert (Depcheck.typecheck (Inr(False)) (Coprod(Unit, Bool)))
 
 let coprod2 () =
-  let _m = Case (Abs ("x", True), Abs ("x", False), Var "p", Abs ("x", Bool)) in
+  let _m = Case (Abs ("x1", True), Abs ("x2", False), Var "p", Abs ("x3", Bool)) in
   let m = Let ("p", Inl(TT), Coprod(Unit, Bool), _m) in
   let a = Bool in
   assert (Depcheck.typecheck m a)
 
 let coprod3 () =
-  let __m = Case (Abs ("x", Unit), Abs ("x", Bool), Var "x", Abs ("x", Type)) in
-  let _m = Case (Abs ("x", TT), Abs ("x", False), Var "p", Abs ("x", __m)) in
+  let __m = Case (Abs ("x3", Unit), Abs ("x4", Bool), Var "x", Abs ("x5", Type)) in
+  let _m = Case (Abs ("x1", TT), Abs ("x2", False), Var "p", Abs ("x", __m)) in
   let m = Let ("p", Inr(False), Coprod(Unit, Bool), _m) in
   let a = Bool in
   assert (Depcheck.typecheck m a)
