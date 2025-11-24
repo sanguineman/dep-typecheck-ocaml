@@ -246,6 +246,17 @@ let nat7 () =
   let m = Rec (TT, Abs ("x", Abs ("y", True)), Zero, Abs("n", _m)) in
   assert (Depcheck.typecheck m Unit)
 
+let nat8 () =
+  (* Rec(λx. x, λ_.λf.λy. Succ (f y), Succ (Succ Zero), (λ_. (_: Nat) Nat) *)
+  let plus2 = Rec (Abs ("x", Var "x"), Abs ("z", Abs ("f", Abs("y", Succ (App (Var "f", Var "y"))))), Succ (Succ Zero), Abs ("z", Pi ("z", Nat, Nat))) in
+  (* plus2 3*)
+  let applied = App (plus2, Succ (Zero)) in
+  let h = Abs ("h", App (Var "h", applied)) in
+  let p = Abs ("P", h) in
+  let h_ty = pi_list [("y", Nat)] (App (Var "P", Var "y")) in
+  let a = pi_list [("P", Pi ("_", Nat, Type)); ("h", h_ty)] (App (Var "P", Succ (Succ (Succ Zero)))) in
+  assert (Depcheck.typecheck p a)
+
 let suite = [
   "Pi1", pi1;
   "Pi2", pi2;
@@ -282,6 +293,7 @@ let suite = [
   "Nat5", nat5;
   "Nat6", nat6;
   "Nat7", nat7;
+  "Nat8", nat8;
 ]
 
 let unused_suite = [
